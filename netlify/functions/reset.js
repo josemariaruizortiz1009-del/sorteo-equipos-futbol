@@ -1,14 +1,14 @@
-const { json, options, saveState } = require('./_shared');
+import { json, options, saveState } from './_shared.js';
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return options();
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Método no permitido' });
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return options();
+  if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405);
 
   const resetCode = process.env.RESET_CODE;
-  const body = JSON.parse(event.body || '{}');
+  const body = await req.json().catch(() => ({}));
 
   if (!resetCode || body.code !== resetCode) {
-    return json(403, { error: 'Código de reinicio incorrecto o no configurado' });
+    return json({ error: 'Código de reinicio incorrecto o no configurado' }, 403);
   }
 
   const state = {
@@ -18,5 +18,9 @@ exports.handler = async (event) => {
   };
 
   await saveState(state);
-  return json(200, { ok: true, message: 'Sorteo reiniciado' });
+  return json({ ok: true, message: 'Sorteo reiniciado' });
+}
+
+export const config = {
+  path: '/api/reset'
 };

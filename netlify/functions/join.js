@@ -1,21 +1,21 @@
-const { PLAYERS, json, options, buildTeams, getState, saveState } = require('./_shared');
+import { PLAYERS, json, options, buildTeams, getState, saveState } from './_shared.js';
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return options();
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Método no permitido' });
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return options();
+  if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405);
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = await req.json().catch(() => ({}));
     const player = String(body.player || '').trim();
 
     if (!PLAYERS.includes(player)) {
-      return json(400, { error: 'Jugador no válido' });
+      return json({ error: 'Jugador no válido' }, 400);
     }
 
     const state = await getState();
 
     if (state.assignments[player]) {
-      return json(200, {
+      return json({
         ok: true,
         alreadyAssigned: true,
         player,
@@ -40,7 +40,7 @@ exports.handler = async (event) => {
 
     await saveState(state);
 
-    return json(200, {
+    return json({
       ok: true,
       alreadyAssigned: false,
       player,
@@ -48,6 +48,10 @@ exports.handler = async (event) => {
       teams: buildTeams(state.assignments)
     });
   } catch (error) {
-    return json(500, { error: 'No se pudo asignar el equipo', detail: error.message });
+    return json({ error: 'No se pudo asignar el equipo', detail: error.message }, 500);
   }
+}
+
+export const config = {
+  path: '/api/join'
 };

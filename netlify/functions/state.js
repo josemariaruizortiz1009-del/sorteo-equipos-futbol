@@ -1,18 +1,22 @@
-const { PLAYERS, json, options, buildTeams, getState } = require('./_shared');
+import { PLAYERS, json, options, buildTeams, getState } from './_shared.js';
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return options();
-  if (event.httpMethod !== 'GET') return json(405, { error: 'Método no permitido' });
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return options();
+  if (req.method !== 'GET') return json({ error: 'Método no permitido' }, 405);
 
   try {
     const state = await getState();
-    return json(200, {
+    return json({
       players: PLAYERS,
       assignments: state.assignments,
       teams: buildTeams(state.assignments),
       updatedAt: state.updatedAt
     });
   } catch (error) {
-    return json(500, { error: 'No se pudo cargar el sorteo', detail: error.message });
+    return json({ error: 'No se pudo cargar el sorteo', detail: error.message }, 500);
   }
+}
+
+export const config = {
+  path: '/api/state'
 };

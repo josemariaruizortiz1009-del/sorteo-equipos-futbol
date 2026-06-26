@@ -1,6 +1,6 @@
-const { getStore } = require('@netlify/blobs');
+import { getStore } from '@netlify/blobs';
 
-const PLAYERS = [
+export const PLAYERS = [
   'Mario Zepeda',
   'Martin',
   'Jose Luis',
@@ -21,58 +21,60 @@ const PLAYERS = [
 const STORE_NAME = 'sorteo-equipos-futbol';
 const STATE_KEY = 'estado';
 
-function json(statusCode, payload) {
-  return {
-    statusCode,
+export function json(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
-    },
-    body: JSON.stringify(payload)
-  };
+    }
+  });
 }
 
-function options() {
-  return {
-    statusCode: 204,
+export function options() {
+  return new Response('', {
+    status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
-    },
-    body: ''
-  };
+    }
+  });
 }
 
 function cleanAssignments(assignments = {}) {
   const clean = {};
   for (const player of PLAYERS) {
-    if (assignments[player] && (assignments[player].team === 'Equipo 1' || assignments[player].team === 'Equipo 2')) {
-      clean[player] = assignments[player];
+    const item = assignments[player];
+    if (item && (item.team === 'Equipo 1' || item.team === 'Equipo 2')) {
+      clean[player] = item;
     }
   }
   return clean;
 }
 
-function buildTeams(assignments = {}) {
+export function buildTeams(assignments = {}) {
   const team1 = [];
   const team2 = [];
+
   for (const player of PLAYERS) {
     const item = assignments[player];
     if (item?.team === 'Equipo 1') team1.push(player);
     if (item?.team === 'Equipo 2') team2.push(player);
   }
+
   return { 'Equipo 1': team1, 'Equipo 2': team2 };
 }
 
-async function getState() {
+export async function getState() {
   const store = getStore(STORE_NAME);
   let state = null;
+
   try {
-    state = await store.get(STATE_KEY, { type: 'json' });
+    state = await store.get(STATE_KEY, { type: 'json', consistency: 'strong' });
   } catch (error) {
     state = null;
   }
@@ -89,18 +91,9 @@ async function getState() {
   return state;
 }
 
-async function saveState(state) {
+export async function saveState(state) {
   const store = getStore(STORE_NAME);
   state.updatedAt = new Date().toISOString();
   await store.setJSON(STATE_KEY, state);
   return state;
 }
-
-module.exports = {
-  PLAYERS,
-  json,
-  options,
-  buildTeams,
-  getState,
-  saveState
-};
